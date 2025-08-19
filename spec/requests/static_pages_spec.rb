@@ -20,7 +20,7 @@ RSpec.describe "StaticPages", type: :request do
     it "titleが正しい" do
       get static_pages_home_url
       dom = Capybara.string(response.body)
-      expect(dom).to have_title("Home | #{@base_title}")
+      expect(dom).to have_title("#{@base_title}", exact: true)
     end
   end
 
@@ -32,7 +32,7 @@ RSpec.describe "StaticPages", type: :request do
     it "titleが正しい" do
       get  static_pages_help_url
       dom = Capybara.string(response.body)
-      expect(dom).to have_title("Help | #{@base_title}")
+      expect(dom).to have_title("Help | #{@base_title}", exact: true)
     end
   end
 
@@ -44,7 +44,7 @@ RSpec.describe "StaticPages", type: :request do
     it "titleが正しい" do
       get  static_pages_about_url
       dom = Capybara.string(response.body)
-      expect(dom).to have_title("About | #{@base_title}")
+      expect(dom).to have_title("About | #{@base_title}", exact: true)
     end
   end
 
@@ -56,7 +56,7 @@ RSpec.describe "StaticPages", type: :request do
     it "titleが正しい" do
       get  static_pages_contact_url
       dom = Capybara.string(response.body)
-      expect(dom).to have_title("Contact | #{@base_title}")
+      expect(dom).to have_title("Contact | #{@base_title}", exact: true)
     end
   end
 end
