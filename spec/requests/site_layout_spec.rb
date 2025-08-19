@@ -17,6 +17,9 @@ RSpec.describe "Site layout", type: :request do
       get contact_path
       contact_dom = Capybara.string(response.body)
       expect(contact_dom).to have_title(ApplicationController.helpers.full_title('Contact'), exact: true)
+      get signup_path
+      signup_dom = Capybara.string(response.body)
+      expect(signup_dom).to have_title(ApplicationController.helpers.full_title('Sign up'), exact: true)
 
     end
   end
