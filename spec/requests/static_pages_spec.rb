@@ -5,20 +5,13 @@ RSpec.describe "StaticPages", type: :request do
     @base_title = "Ruby on Rails Tutorial Sample App"
   end
 
-  describe "GET root" do
-    it "returns http success" do
-      get root_url
-      expect(response).to have_http_status(:success)
-    end
-  end
-
   describe "GET /home" do
     it "returns http success" do
-      get static_pages_home_url
+      get root_path
       expect(response).to have_http_status(:success)
     end
     it "titleが正しい" do
-      get static_pages_home_url
+      get root_path
       dom = Capybara.string(response.body)
       expect(dom).to have_title("#{@base_title}", exact: true)
     end
@@ -26,11 +19,11 @@ RSpec.describe "StaticPages", type: :request do
 
   describe "GET /help" do
     it "returns http success" do
-      get static_pages_help_url
+      get help_path
       expect(response).to have_http_status(:success)
     end
     it "titleが正しい" do
-      get  static_pages_help_url
+      get  help_path
       dom = Capybara.string(response.body)
       expect(dom).to have_title("Help | #{@base_title}", exact: true)
     end
@@ -38,11 +31,11 @@ RSpec.describe "StaticPages", type: :request do
 
   describe "GET /about" do
     it "returns http success" do
-      get static_pages_about_url
+      get about_path
       expect(response).to have_http_status(:success)
     end
     it "titleが正しい" do
-      get  static_pages_about_url
+      get  about_path
       dom = Capybara.string(response.body)
       expect(dom).to have_title("About | #{@base_title}", exact: true)
     end
@@ -50,11 +43,11 @@ RSpec.describe "StaticPages", type: :request do
 
   describe "GET /contact" do
     it "returns http success" do
-      get static_pages_contact_url
+      get contact_path
       expect(response).to have_http_status(:success)
     end
     it "titleが正しい" do
-      get  static_pages_contact_url
+      get  contact_path
       dom = Capybara.string(response.body)
       expect(dom).to have_title("Contact | #{@base_title}", exact: true)
     end
