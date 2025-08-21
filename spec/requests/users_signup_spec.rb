@@ -25,7 +25,7 @@ RSpec.describe "Users signup", type: :request do
 
   it "valid signup information" do
     expect {
-            post users_path, params: {
+      post users_path, params: {
         user: {
           name: "Example User",
           email: "user@example.com",
@@ -33,11 +33,12 @@ RSpec.describe "Users signup", type: :request do
           password_confirmation: "password"
         }
       }
-  }.to change(User, :count).by(1)
-      expect(response).to be_redirect
-      follow_redirect!
-      expect(response).to render_template("users/show")
-      expect(flash).not_to be_empty
+    }.to change(User, :count).by(1)
+    expect(response).to be_redirect
+    follow_redirect!
+    expect(response).to render_template("users/show")
+    expect(flash).not_to be_empty
+    expect(is_logged_in?).to be_truthy
     end
 
 end
