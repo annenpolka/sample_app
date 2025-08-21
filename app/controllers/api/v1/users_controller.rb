@@ -1,10 +1,10 @@
 class Api::V1::UsersController < Api::BaseController
+  before_action :authenticate_user, only: [:show, :update, :destroy]
   def index
   end
 
   def show
-    @user = User.find(params[:id])
-    render json: @user
+    render json: @current_user
   end
 
   def create
