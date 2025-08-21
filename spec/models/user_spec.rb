@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe User, type: :model do
   before(:each) do
     @user = User.new(name: "Example User", email: "user@example.com",
-                     password: "foobarbaz", password_confirmation: "foobarbaz")
+                     password: "foobar", password_confirmation: "foobar")
   end
 
   it "is vaild" do
@@ -63,12 +63,12 @@ RSpec.describe User, type: :model do
   end
 
   it "password should be present (nonblank)" do
-    @user.password = @user.password_confirmation = " " * 8
+    @user.password = @user.password_confirmation = " " * 6
     expect(@user).not_to be_valid
   end
 
   it "password should have a minimum length" do
-    @user.password = @user.password_confirmation = "a" * 7
+    @user.password = @user.password_confirmation = "a" * 5
     expect(@user).not_to be_valid
   end
 end
