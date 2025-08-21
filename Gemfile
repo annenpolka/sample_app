@@ -26,6 +26,7 @@ group :development, :test do
   gem "debug",   "1.7.1", platforms: %i[ mri mingw x64_mingw ]
   gem "rspec-rails", "~> 7.0"
   gem 'factory_bot_rails'
+  gem 'faker'
   gem "guard-rspec", require: false
 end
 

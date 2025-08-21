@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "ユーザーログイン", type: :request do
-  let(:user) { create(:john) }
+  let(:user) { create(:user) }
 
   # Small helpers to keep examples focused
   def dom_for(response)
