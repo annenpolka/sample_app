@@ -22,4 +22,22 @@ RSpec.describe "Users signup", type: :request do
     expect(dom).to have_css('div#error_explanation')
     expect(dom).to have_css('div.field_with_errors')
   end
+
+  it "valid signup information" do
+    expect {
+            post users_path, params: {
+        user: {
+          name: "Example User",
+          email: "user@example.com",
+          password: "password",
+          password_confirmation: "password"
+        }
+      }
+  }.to change(User, :count).by(1)
+      expect(response).to be_redirect
+      follow_redirect!
+      expect(response).to render_template("users/show")
+      expect(flash).not_to be_empty
+    end
+
 end
