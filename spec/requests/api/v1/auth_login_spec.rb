@@ -37,8 +37,9 @@ RSpec.describe 'API JWT Authentication', type: :request do
       get '/api/v1/users/show',
           headers: { 'CONTENT_TYPE' => 'application/json', 'AUTHORIZATION' => token }
 
-      puts JSON.parse(response.body)
-      # expect(response)
+      get_json =  JSON.parse(response.body).with_indifferent_access
+      expect(get_json[:email]).to eq(user.email)
+      expect(get_json[:name]).to be_present
     end
   end
 end
