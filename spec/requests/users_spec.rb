@@ -1,8 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe "Users", type: :request do
-  let(:user) { create(:user) }
-  let(:other_user) { create(:user) }
+  let!(:user) { create(:user, admin: true) }
+  let!(:other_user) { create(:user) }
 
   describe "ログアウト時のリダイレクト" do
     it "should redirect edit when not logged in" do
@@ -41,4 +41,28 @@ RSpec.describe "Users", type: :request do
     end
   end
 
+  describe "管理者権限" do
+    it "should not allow the admin attribute to be edited via the web" do
+      log_in_as(other_user)
+      expect(other_user.admin?).not_to be_truthy
+      patch user_path(other_user), params: { user: { password:  "password",
+                                                     password_confirmation: "password",
+                                                     admin: true } }
+      expect(other_user.admin?).not_to be_truthy
+    end
+
+    it "should redirect destory when not logged in" do
+      expect { delete user_path(user) }.not_to change(User, :count)
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(login_url)
+    end
+
+    it "should redirect destory when logged in as a non-admin" do
+      log_in_as(other_user)
+      expect { delete user_path(user) }.not_to change(User, :count)
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(root_url)
+    end
+
+  end
 end
