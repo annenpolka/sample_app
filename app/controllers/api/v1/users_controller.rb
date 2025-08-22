@@ -31,6 +31,13 @@ class Api::V1::UsersController < Api::BaseController
   end
 
   def destroy
+    @user = User.find(params[:id])
+    if @current_user.admin? && @current_user != @user
+      @user.destroy
+      render json: { destroyed: @user.destroyed? }, status: :ok
+    else
+      render json: { error: "Forbidden" }, status: :forbidden
+    end
   end
 
     private

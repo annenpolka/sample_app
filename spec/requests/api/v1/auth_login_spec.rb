@@ -65,4 +65,58 @@ RSpec.describe 'API JWT Authentication', type: :request do
       expect(user_json[:password_digest]).not_to be_present
     end
   end
+
+  describe 'DELETE /api/v1/users/:id' do
+    # 管理者ユーザーが他のユーザーを削除できる
+    it '管理者は他のユーザーを削除できる' do
+      login_user(admin.email, "secret123")
+      json = response_json
+      token = json[:user][:token]
+      delete "/api/v1/users/#{user.id}",
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
+      expect(response).to have_http_status(:ok)
+      # 削除されたユーザーが存在しないことを確認
+      login_user(user.email, 'secret123')
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it '一般ユーザーは他のユーザーを削除できない' do
+      # non_admin でログイン → token取得
+      login_user(non_admin.email, "secret123")
+      json = response_json
+      token = json[:user][:token]
+      delete "/api/v1/users/#{user.id}",
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it '非ログインユーザーはユーザーを削除できない' do
+      token = "invalid"
+      delete "/api/v1/users/#{user.id}",
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it '存在しないユーザーIDでは404を返す' do
+      login_user(admin.email, "secret123")
+      json = response_json
+      token = json[:user][:token]
+      delete "/api/v1/users/999999",
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it '管理者でも自分自身は削除できない' do
+      login_user(admin.email, "secret123")
+      json = response_json
+      token = json[:user][:token]
+      delete "/api/v1/users/#{admin.id}",
+             headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}" }
+      expect(response).to have_http_status(:forbidden)
+      # ユーザーが削除されていないことを確認（再度ログインできる）
+      login_user(admin.email, 'secret123')
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
 end

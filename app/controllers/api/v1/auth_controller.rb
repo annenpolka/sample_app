@@ -5,8 +5,7 @@ class Api::V1::AuthController < Api::BaseController
       token = create_token(@user.id)
       render json: {user: {email: @user.email, name: @user.name, token: token}}
     else
-      render json: {errors: {body: @user.errors}}, status: :unauthorized
-      # render status: :unauthorized
+      render json: { error: "Unauthorized" }, status: :unauthorized
     end
   end
 end
