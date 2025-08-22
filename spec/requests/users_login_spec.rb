@@ -96,6 +96,14 @@ RSpec.describe "ユーザーログイン", type: :request do
 
         expect_nav_for_guest(dom_for(response))
       end
+
+      it "should still work after logout in second window" do
+        delete logout_path
+        expect(response).to redirect_to(root_url)
+        delete logout_path
+        expect(response).to redirect_to(root_url)
+      end
+
     end
   end
 end
