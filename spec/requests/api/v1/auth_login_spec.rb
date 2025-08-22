@@ -111,7 +111,7 @@ RSpec.describe 'API JWT Authentication', type: :request do
       json = response_json
       token = json[:user][:token]
       delete "/api/v1/users/#{admin.id}",
-             headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}" }
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}" }
       expect(response).to have_http_status(:forbidden)
       # ユーザーが削除されていないことを確認（再度ログインできる）
       login_user(admin.email, 'secret123')
@@ -119,4 +119,30 @@ RSpec.describe 'API JWT Authentication', type: :request do
     end
   end
 
+  describe 'PATCH /api/v1/users' do
+    it 'ログインユーザーが自分の情報を更新できる' do
+      login_user(user.email, "secret123")
+      login_json = response_json
+      token = login_json[:user][:token]
+      patch "/api/v1/users/#{user.id}",
+          params: { user: { name:  "新しい名前" } }.to_json,
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:ok)
+      user_json = response_json
+      expect(user_json.dig(:user, :name)).to eq("新しい名前")
+    end
+    it '非ログインユーザーは情報を更新できない' do
+      token = "invalid"
+      patch "/api/v1/users/#{user.id}",
+          params: { user: { name:  "新しい名前" } }.to_json,
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}" }
+      expect(response).to have_http_status(:unauthorized)
+      #　名前が変更されていないことを確認
+      get "/api/v1/users/#{user.id}",
+          headers: { 'CONTENT_TYPE' => 'application/json'}
+      user_json = response_json
+      expect(user_json[:name]).not_to eq("新しい名前")
+    end
+  end
 end

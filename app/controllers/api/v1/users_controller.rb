@@ -28,6 +28,11 @@ class Api::V1::UsersController < Api::BaseController
   end
 
   def update
+    if @current_user.update(user_params)
+      render json: {user: { name: @current_user.name, email: @current_user.email } }, status: :ok
+    else
+      render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
+    end
   end
 
   def destroy
@@ -43,8 +48,7 @@ class Api::V1::UsersController < Api::BaseController
     private
 
     def user_params
-      params.require(:user).permit(:name, :email, :password,
-                                   :password_confirmation)
+      params.require(:user).permit(:name, :email, :password)
     end
 
 end
