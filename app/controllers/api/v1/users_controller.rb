@@ -1,10 +1,21 @@
 class Api::V1::UsersController < Api::BaseController
-  before_action :authenticate_user, only: [:show, :update, :destroy]
+  before_action :authenticate_user, only: [:index, :update, :destroy]
   def index
+    @users = User.paginate(page: params[:page], per_page: 30)
+                 .select(:id, :name)
+    render json: {
+      users: @users,
+      meta: {
+        current_page: @users.current_page,
+        total_pages: @users.total_pages,
+        total_count: @users.total_entries
+      }
+    }
   end
 
   def show
-    render json: @current_user
+    @user = User.select(:id, :name).find(params[:id])
+    render json: @user
   end
 
   def create

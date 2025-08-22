@@ -2,44 +2,67 @@ require 'rails_helper'
 
 RSpec.describe 'API JWT Authentication', type: :request do
   let(:user) { create(:user, password: 'secret123', password_confirmation: 'secret123') }
+  let!(:users) { create_list(:user, 100)}
+  let(:admin) { create(:user, password: 'secret123', password_confirmation: 'secret123', admin: true) }
+  let(:non_admin) { create(:user, password: 'secret123', password_confirmation: 'secret123', admin: false) }
+
+  def login_user(email, password)
+    post '/api/v1/auth/login',
+         params: { user: { email: email, password: password } }.to_json,
+         headers: { 'CONTENT_TYPE' => 'application/json', 'ACCEPT' => 'application/json' }
+  end
+
+  def response_json
+    JSON.parse(response.body).with_indifferent_access
+  end
 
   describe 'POST /api/v1/auth/login' do
     it 'returns JWT token on valid credentials' do
-      post '/api/v1/auth/login',
-           params: { user: { email: user.email, password: 'secret123' } }.to_json,
-           headers: { 'CONTENT_TYPE' => 'application/json', 'ACCEPT' => 'application/json' }
+      login_user(user.email, 'secret123')
 
       expect(response).to have_http_status(:ok)
-      json = JSON.parse(response.body).with_indifferent_access
-      expect(json.dig(:user, :token)).to be_present
+      json = response_json
+      expect(json[:user][:token]).to be_present
     end
 
     it 'returns 401 on invalid credentials' do
-      post '/api/v1/auth/login',
-           params: { user: { email: user.email, password: 'invalid' } }.to_json,
-           headers: { 'CONTENT_TYPE' => 'application/json', 'ACCEPT' => 'application/json' }
+      login_user(user.email, 'invalid')
 
       expect(response).to have_http_status(:unauthorized)
-      json = JSON.parse(response.body).with_indifferent_access
+      json = response_json
       expect(json.dig(:user, :token)).not_to be_present
     end
   end
 
-  describe 'POST /api/v1/users/show' do
-    it 'get user info on valid credentials' do
-      post '/api/v1/auth/login',
-           params: { user: { email: user.email, password: 'secret123' } }.to_json,
-           headers: { 'CONTENT_TYPE' => 'application/json', 'ACCEPT' => 'application/json' }
+  describe 'GET /api/v1/users' do
+    it 'ログインユーザーがユーザー一覧を取得する' do
+      login_user(user.email, 'secret123')
+      login_json = response_json
+      token = login_json[:user][:token]
+      get "/api/v1/users/",
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
 
-      post_json = JSON.parse(response.body).with_indifferent_access
-      token = post_json.dig(:user, :token)
+      users_json = response_json
+      expect(users_json[:meta]).to be_present
+      expect(users_json[:meta][:total_count]).to be_present
+    end
 
-      get '/api/v1/users/show',
-          headers: { 'CONTENT_TYPE' => 'application/json', 'AUTHORIZATION' => token }
+    it '非ログインユーザーはユーザー一覧を取得できない' do
+      token = "invalid"
+      get "/api/v1/users/",
+          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
 
-      get_json =  JSON.parse(response.body).with_indifferent_access
-      expect(get_json[:email]).to eq(user.email)
-      expect(get_json[:name]).to be_present
+      users_json = response_json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'id指定でユーザー情報を取得する' do
+      get "/api/v1/users/#{user.id}",
+          headers: { 'CONTENT_TYPE' => 'application/json'}
+
+      user_json = response_json
+      expect(user_json[:name]).to be_present
+      expect(user_json[:password_digest]).not_to be_present
     end
   end
 end
