@@ -17,6 +17,11 @@ RSpec.describe "Users", type: :request do
       expect(flash).not_to be_empty
       expect(response).to redirect_to(login_url)
     end
+
+    it "should redirect index when not logged in" do
+      get users_path
+      expect(response).to redirect_to(login_url)
+    end
   end
 
   describe "ユーザーが異なる場合のリダイレクト" do
