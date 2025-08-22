@@ -24,15 +24,11 @@ RSpec.describe "ユーザーログイン", type: :request do
     end
   end
 
-  def post_login_as(user, remember_me: '1')
-    post login_path, params: { session: { email: user.email, password: user.password, remember_me: remember_me } }
-  end
-
   describe "ログイン（/login）" do
     describe "ログイン（POST /login）" do
       context "認証情報が正しい場合" do
         it "ユーザーのプロフィールへリダイレクトし、ログイン状態のナビゲーションが表示される" do
-          post_login_as(user)
+          log_in_as(user)
 
           expect(is_logged_in?).to be_truthy
           expect(response).to redirect_to(user_path(user))
@@ -79,7 +75,7 @@ RSpec.describe "ユーザーログイン", type: :request do
   describe "ログアウト（DELETE /logout）" do
     context "ログイン済みの場合" do
       before do
-        post_login_as(user)
+        log_in_as(user)
         follow_redirect!
       end
 
@@ -108,15 +104,15 @@ RSpec.describe "ユーザーログイン", type: :request do
 
   describe "remember me機能" do
     it "remember付きでログイン" do
-      post_login_as(user, remember_me: '1')
+      log_in_as(user, remember_me: '1')
       expect(cookies[:remember_token]).not_to be_empty
     end
 
     it "rememberなしでログイン" do
       # Cookieを保存してログイン
-      post_login_as(user, remember_me: '1')
+      log_in_as(user, remember_me: '1')
       # Cookieが削除されていることを検証してからログイン
-      post_login_as(user, remember_me: '0')
+      log_in_as(user, remember_me: '0')
       expect(cookies[:remember_token]).to be_empty
     end
   end
