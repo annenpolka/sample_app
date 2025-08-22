@@ -9,7 +9,7 @@ class Api::BaseController < ActionController::API
   def authenticate_user
     token = request.headers['Authorization']&.split(' ')&.last
     payload = decode_token(token)
-    
+
     if payload
       @current_user_id = payload['user_id']
       @current_user = User.find(@current_user_id)
@@ -21,7 +21,10 @@ class Api::BaseController < ActionController::API
   end
 
   def create_token(user_id)
-    payload = {user_id: user_id, exp: 24.hours.from_now.to_i }
+    payload = {
+      user_id: user_id,
+      # exp: 24.hours.from_now.to_i
+     }
     secret_key = Rails.application.credentials.secret_key_base
     token = JWT.encode(payload, secret_key, 'HS256')
     return token
