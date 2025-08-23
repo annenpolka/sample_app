@@ -77,24 +77,21 @@ RSpec.describe "ユーザーログイン", type: :request do
       before do
         log_in_as(user)
         follow_redirect!
+        delete logout_path
       end
 
       it "ログアウトして303でトップへリダイレクトする" do
-        delete logout_path
         expect(is_logged_in?).not_to be_truthy
         expect(response).to have_http_status(:see_other)
         expect(response).to redirect_to(root_url)
       end
 
       it "ログアウト後はゲスト用ナビゲーションが表示される" do
-        delete logout_path
         follow_redirect!
-
         expect_nav_for_guest(dom_for(response))
       end
 
-      it "should still work after logout in second window" do
-        delete logout_path
+      it "複数ウィンドウでログアウトした場合もリダイレクトされる" do
         expect(response).to redirect_to(root_url)
         delete logout_path
         expect(response).to redirect_to(root_url)

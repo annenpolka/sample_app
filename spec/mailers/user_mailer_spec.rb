@@ -4,6 +4,7 @@ RSpec.describe UserMailer, type: :mailer do
   describe "account_activation" do
     subject(:mail) { UserMailer.account_activation(user) }
     let(:user) { create(:user) }
+    let(:from_email) { "annenpolka.lan@gmail.com" }
 
     before do
       user.activation_token = User.new_token
@@ -13,7 +14,7 @@ RSpec.describe UserMailer, type: :mailer do
       it do
         expect(mail.subject).to eq("Account activation")
         expect(mail.to).to eq([user.email])
-        expect(mail.from).to eq(["annenpolka.lan@gmail.com"])
+        expect(mail.from).to eq([from_email])
         expect(mail.body.encoded).to include(user.name)
         expect(mail.body.encoded).to include(user.activation_token)
         expect(mail.body.encoded).to include(CGI.escape(user.email))
