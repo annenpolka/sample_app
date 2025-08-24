@@ -76,13 +76,34 @@ RSpec.describe User, type: :model do
     expect(@user.authenticated?(:remember, '')).not_to be_truthy
   end
 
-  context  "dependent: :destroy" do
+  context "dependent: :destroy" do
     let(:user) { create(:user) }
 
     it "destroys associated microposts" do
       user.microposts.create!(content: "Lorem ipsum")
       expect { user.destroy }.to change(Micropost, :count).by(-1)
     end
+  end
+
+  context "フォロー／フォロー解除" do
+    let(:user_a) { create(:user) }
+    let(:user_b) { create(:user) }
+
+    it "should follow and unfollow a user" do
+      expect(user_a).not_to be_following(user_b)
+      user_a.follow(user_b)
+      expect(user_a).to be_following(user_b)
+      expect(user_b.followers).to include(user_a)
+      user_a.unfollow(user_b)
+      expect(user_a).not_to be_following(user_b)
+    end
+
+    it "ユーザーは自分自身をフォローできない" do
+      user_a.follow(user_a)
+      expect(user_a).not_to be_following(user_a)
+    end
+
+
   end
 
 end
