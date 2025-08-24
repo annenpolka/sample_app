@@ -20,7 +20,6 @@ ActiveRecord::Schema[7.0].define(version: 2025_08_24_023918) do
     t.index ["user_id"], name: "index_microposts_on_user_id"
   end
 
-ActiveRecord::Schema[7.0].define(version: 2025_08_23_083411) do
   create_table "users", force: :cascade do |t|
     t.string "name"
     t.string "email"
