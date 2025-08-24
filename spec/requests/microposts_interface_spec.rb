@@ -84,4 +84,27 @@ RSpec.describe "Microposts interface", type: :request do
     end
   end
 
+  context "画像アップロード" do
+    it "should hve a file input field for images" do
+      get root_path
+      expect(dom).to have_css('input[type="file"]')
+    end
+
+    it "should be able to attach an image" do
+      cont = "This micropost really ties the room together."
+      img  = Rack::Test::UploadedFile.new(
+        Rails.root.join("spec/fixtures/kitten.jpg"), "image/jpeg"
+      )
+
+      expect {
+        post microposts_path, params: { micropost: { content: cont, image: img } }
+      }.to change(Micropost, :count).by(1)
+
+      mp = Micropost.find_by!(content: cont, user_id: user.id)
+      expect(mp.image).to be_attached
+      expect(mp.image.blob.content_type).to eq("image/jpeg")
+    end
+  end
+
+
 end
