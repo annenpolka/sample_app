@@ -63,6 +63,18 @@ RSpec.describe "Users", type: :request do
       expect(response).to have_http_status(:see_other)
       expect(response).to redirect_to(root_url)
     end
-
   end
+
+  describe "フォロー・フォロワー表示" do
+    it "should redirect following when not logged in" do
+      get following_user_path(user)
+      expect(response).to redirect_to(login_url)
+    end
+
+    it "should redirect followers when not logged in" do
+      get followers_user_path(user)
+      expect(response).to redirect_to(login_url)
+    end
+  end
+
 end
