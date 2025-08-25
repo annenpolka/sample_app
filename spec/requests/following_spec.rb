@@ -75,5 +75,11 @@ RSpec.describe "Following", type: :request do
       end
     end
 
+    context "フィード表示のテスト" do
+      it "feed on Home page" do
+        get root_path
+        expect(response.body).to include("Micropost Feed")
+      end
+    end
   end
 end

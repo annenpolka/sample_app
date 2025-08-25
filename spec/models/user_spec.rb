@@ -125,6 +125,7 @@ RSpec.describe User, type: :model do
       # 自分自身の投稿を確認
       user.microposts.each do |post_self|
         expect(user.feed).to include(post_self)
+        expect(user.feed.distinct).to eq(user.feed)
       end
       # フォローしていないユーザーの投稿を確認
       unfollowed_user.microposts.each do |post_unfollowed|
