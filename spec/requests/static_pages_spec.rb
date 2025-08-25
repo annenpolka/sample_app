@@ -6,12 +6,14 @@ RSpec.describe "StaticPages", type: :request do
   end
 
   describe "GET /home" do
-    it "returns http success" do
+    before do
       get root_path
+    end
+
+    it "returns http success" do
       expect(response).to have_http_status(:success)
     end
     it "titleが正しい" do
-      get root_path
       dom = Capybara.string(response.body)
       expect(dom).to have_title("#{@base_title}", exact: true)
     end
