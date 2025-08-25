@@ -102,7 +102,35 @@ RSpec.describe User, type: :model do
       user_a.follow(user_a)
       expect(user_a).not_to be_following(user_a)
     end
+  end
 
+  context "フィードのテスト" do
+    let!(:user) { create(:user) }
+    let!(:followed_user) { create(:user) }
+    let!(:unfollowed_user) { create(:user) }
+    let!(:microposts_self) { create_list(:micropost, 3, user: user) }
+    let!(:microposts_followed) { create_list(:micropost, 3, user: followed_user) }
+    let!(:microposts_unfollowed) { create_list(:micropost, 3, user: unfollowed_user) }
+
+    before do
+      user.follow(followed_user)
+      user.unfollow(unfollowed_user)
+    end
+
+    it "feed should have the right posts" do
+      # フォローしているユーザーの投稿を確認
+      followed_user.microposts.each do |post_following|
+        expect(user.feed).to include(post_following)
+      end
+      # 自分自身の投稿を確認
+      user.microposts.each do |post_self|
+        expect(user.feed).to include(post_self)
+      end
+      # フォローしていないユーザーの投稿を確認
+      unfollowed_user.microposts.each do |post_unfollowed|
+        expect(user.feed).not_to include(post_unfollowed)
+      end
+    end
 
   end
 
