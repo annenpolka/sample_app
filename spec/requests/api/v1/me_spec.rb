@@ -3,15 +3,15 @@ require 'rails_helper'
 RSpec.describe 'API Me endpoints', type: :request do
   let(:user) { create(:user, password: 'secret123', password_confirmation: 'secret123') }
 
-  let(:token_for_user) { token_for(user) }
+  let(:token_for_user) { api_token_for(user) }
 
   describe 'GET /api/v1/me' do
     context 'when authenticated' do
       it '現在のユーザー情報を返す' do
         get api_v1_me_path, headers: auth_headers(token_for_user)
         expect(response).to have_http_status(:ok)
-        expect(response_json[:name]).to be_present
-        expect(response_json[:password_digest]).to be_nil
+        expect(api_response_json[:name]).to be_present
+        expect(api_response_json[:password_digest]).to be_nil
       end
     end
 
@@ -30,7 +30,7 @@ RSpec.describe 'API Me endpoints', type: :request do
               params: { user: { name: 'Me Updated' } }.to_json,
               headers: auth_headers(token_for_user)
         expect(response).to have_http_status(:ok)
-        expect(response_json.dig(:user, :name)).to eq('Me Updated')
+        expect(api_response_json.dig(:user, :name)).to eq('Me Updated')
       end
     end
 
@@ -43,7 +43,7 @@ RSpec.describe 'API Me endpoints', type: :request do
         expect(response).to have_http_status(:unauthorized)
         # 変更が反映されていないことを確認
         get api_v1_user_path(user.id), headers: api_headers
-        expect(response_json[:name]).to eq(original_name)
+        expect(api_response_json[:name]).to eq(original_name)
       end
     end
   end
