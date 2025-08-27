@@ -34,11 +34,9 @@ class Api::V1::UsersController < Api::BaseController
     @user = User.find(params[:id])
 
     # 管理者は任意のユーザーを更新可能。一般ユーザーは自分自身のみ許可。
-    if @current_user.admin?
-      permitted = admin_update_params
-    else
-      return render json: { error: 'Forbidden' }, status: :forbidden unless @user.id == @current_user.id
-      permitted = user_params
+    permitted = user_params
+    unless @current_user.admin? || @user.id == @current_user.id
+      return render json: { error: 'Forbidden' }, status: :forbidden
     end
 
     if @user.update(permitted)
@@ -62,10 +60,6 @@ class Api::V1::UsersController < Api::BaseController
 
     def user_params
       params.require(:user).permit(:name, :email, :password)
-    end
-
-    def admin_update_params
-      params.require(:user).permit(:name, :email, :password, :admin)
     end
 
     # /api/v1/me のときだけ認証を強制
