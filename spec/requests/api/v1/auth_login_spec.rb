@@ -6,40 +6,14 @@ RSpec.describe 'API JWT Authentication', type: :request do
   let(:admin) { create(:user, password: 'secret123', password_confirmation: 'secret123', admin: true) }
   let(:non_admin) { create(:user, password: 'secret123', password_confirmation: 'secret123', admin: false) }
 
-  let(:headers) { { 'CONTENT_TYPE' => 'application/json', 'ACCEPT' => 'application/json' } }
-  def auth_headers(token)
-    headers.merge('Authorization' => "Bearer #{token}")
-  end
-
-  def login_user(email, password)
-    post api_v1_auth_login_path,
-         params: { user: { email: email, password: password } }.to_json,
-         headers: headers
-  end
-
-  def response_json
-    JSON.parse(response.body).with_indifferent_access
-  end
-
-  let(:token_for_user) do
-    login_user(user.email, 'secret123')
-    response_json[:user][:token]
-  end
-
-  let(:token_for_admin) do
-    login_user(admin.email, 'secret123')
-    response_json[:user][:token]
-  end
-
-  let(:token_for_non_admin) do
-    login_user(non_admin.email, 'secret123')
-    response_json[:user][:token]
-  end
+  let(:token_for_user) { token_for(user) }
+  let(:token_for_admin) { token_for(admin) }
+  let(:token_for_non_admin) { token_for(non_admin) }
 
   describe 'POST /api/v1/auth/login' do
     context 'with valid credentials' do
       it 'returns JWT token' do
-        login_user(user.email, 'secret123')
+        log_in_as(user, password: 'secret123')
         expect(response).to have_http_status(:ok)
         expect(response_json.dig(:user, :token)).to be_present
       end
@@ -47,7 +21,7 @@ RSpec.describe 'API JWT Authentication', type: :request do
 
     context 'with invalid credentials' do
       it 'returns 401' do
-        login_user(user.email, 'invalid')
+        log_in_as(user, password: 'invalid')
         expect(response).to have_http_status(:unauthorized)
         expect(response_json.dig(:user, :token)).not_to be_present
       end
@@ -74,7 +48,7 @@ RSpec.describe 'API JWT Authentication', type: :request do
   describe 'GET /api/v1/users/:id' do
     context '公開プロフィール' do
       it 'id指定でユーザー情報を取得する' do
-        get api_v1_user_path(user.id), headers: headers
+        get api_v1_user_path(user.id), headers: api_headers
         expect(response_json[:name]).to be_present
         expect(response_json[:password_digest]).not_to be_present
       end
@@ -88,7 +62,7 @@ RSpec.describe 'API JWT Authentication', type: :request do
         expect(response).to have_http_status(:ok)
 
         # 削除されたユーザーでログインできないこと
-        login_user(user.email, 'secret123')
+        log_in_as(user, password: 'secret123')
         expect(response).to have_http_status(:unauthorized)
       end
 
@@ -101,7 +75,7 @@ RSpec.describe 'API JWT Authentication', type: :request do
         delete api_v1_user_path(admin.id), headers: auth_headers(token_for_admin)
         expect(response).to have_http_status(:forbidden)
         # まだログイン可能
-        login_user(admin.email, 'secret123')
+        log_in_as(admin, password: 'secret123')
         expect(response).to have_http_status(:ok)
       end
     end
@@ -161,7 +135,7 @@ RSpec.describe 'API JWT Authentication', type: :request do
               params: { user: { name:  "新しい名前" } }.to_json,
               headers: auth_headers('invalid')
         expect(response).to have_http_status(:unauthorized)
-        get api_v1_user_path(user.id), headers: headers
+        get api_v1_user_path(user.id), headers: api_headers
         expect(response_json[:name]).not_to eq("新しい名前")
       end
     end
