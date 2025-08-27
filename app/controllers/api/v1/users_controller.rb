@@ -28,8 +28,18 @@ class Api::V1::UsersController < Api::BaseController
   end
 
   def update
-    if @current_user.update(user_params)
-      render json: {user: { name: @current_user.name, email: @current_user.email } }, status: :ok
+    @user = User.find(params[:id])
+
+    # 管理者は任意のユーザーを更新可能。一般ユーザーは自分自身のみ許可。
+    if @current_user.admin?
+      permitted = admin_update_params
+    else
+      return render json: { error: 'Forbidden' }, status: :forbidden unless @user.id == @current_user.id
+      permitted = user_params
+    end
+
+    if @user.update(permitted)
+      render json: { user: { name: @user.name, email: @user.email } }, status: :ok
     else
       render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
     end
@@ -49,6 +59,10 @@ class Api::V1::UsersController < Api::BaseController
 
     def user_params
       params.require(:user).permit(:name, :email, :password)
+    end
+
+    def admin_update_params
+      params.require(:user).permit(:name, :email, :password, :admin)
     end
 
 end

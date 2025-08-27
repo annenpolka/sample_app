@@ -2,147 +2,168 @@ require 'rails_helper'
 
 RSpec.describe 'API JWT Authentication', type: :request do
   let(:user) { create(:user, password: 'secret123', password_confirmation: 'secret123') }
-  let!(:users) { create_list(:user, 100)}
+  let!(:users) { create_list(:user, 100) }
   let(:admin) { create(:user, password: 'secret123', password_confirmation: 'secret123', admin: true) }
   let(:non_admin) { create(:user, password: 'secret123', password_confirmation: 'secret123', admin: false) }
 
+  let(:headers) { { 'CONTENT_TYPE' => 'application/json', 'ACCEPT' => 'application/json' } }
+  def auth_headers(token)
+    headers.merge('Authorization' => "Bearer #{token}")
+  end
+
   def login_user(email, password)
-    post '/api/v1/auth/login',
+    post api_v1_auth_login_path,
          params: { user: { email: email, password: password } }.to_json,
-         headers: { 'CONTENT_TYPE' => 'application/json', 'ACCEPT' => 'application/json' }
+         headers: headers
   end
 
   def response_json
     JSON.parse(response.body).with_indifferent_access
   end
 
-  describe 'POST /api/v1/auth/login' do
-    it 'returns JWT token on valid credentials' do
-      login_user(user.email, 'secret123')
+  let(:token_for_user) do
+    login_user(user.email, 'secret123')
+    response_json[:user][:token]
+  end
 
-      expect(response).to have_http_status(:ok)
-      json = response_json
-      expect(json[:user][:token]).to be_present
+  let(:token_for_admin) do
+    login_user(admin.email, 'secret123')
+    response_json[:user][:token]
+  end
+
+  let(:token_for_non_admin) do
+    login_user(non_admin.email, 'secret123')
+    response_json[:user][:token]
+  end
+
+  describe 'POST /api/v1/auth/login' do
+    context 'with valid credentials' do
+      it 'returns JWT token' do
+        login_user(user.email, 'secret123')
+        expect(response).to have_http_status(:ok)
+        expect(response_json.dig(:user, :token)).to be_present
+      end
     end
 
-    it 'returns 401 on invalid credentials' do
-      login_user(user.email, 'invalid')
-
-      expect(response).to have_http_status(:unauthorized)
-      json = response_json
-      expect(json.dig(:user, :token)).not_to be_present
+    context 'with invalid credentials' do
+      it 'returns 401' do
+        login_user(user.email, 'invalid')
+        expect(response).to have_http_status(:unauthorized)
+        expect(response_json.dig(:user, :token)).not_to be_present
+      end
     end
   end
 
   describe 'GET /api/v1/users' do
-    it 'ログインユーザーがユーザー一覧を取得する' do
-      login_user(user.email, 'secret123')
-      login_json = response_json
-      token = login_json[:user][:token]
-      get "/api/v1/users/",
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
-
-      users_json = response_json
-      expect(users_json[:meta]).to be_present
-      expect(users_json[:meta][:total_count]).to be_present
+    context 'when authenticated' do
+      it '一覧を返す（ページネーション情報を含む）' do
+        get api_v1_users_path, headers: auth_headers(token_for_user)
+        expect(response_json[:meta]).to be_present
+        expect(response_json[:meta][:total_count]).to be_present
+      end
     end
 
-    it '非ログインユーザーはユーザー一覧を取得できない' do
-      token = "invalid"
-      get "/api/v1/users/",
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
-
-      users_json = response_json
-      expect(response).to have_http_status(:unauthorized)
+    context 'when unauthenticated' do
+      it '401 を返す' do
+        get api_v1_users_path, headers: auth_headers('invalid')
+        expect(response).to have_http_status(:unauthorized)
+      end
     end
+  end
 
-    it 'id指定でユーザー情報を取得する' do
-      get "/api/v1/users/#{user.id}",
-          headers: { 'CONTENT_TYPE' => 'application/json'}
-
-      user_json = response_json
-      expect(user_json[:name]).to be_present
-      expect(user_json[:password_digest]).not_to be_present
+  describe 'GET /api/v1/users/:id' do
+    context '公開プロフィール' do
+      it 'id指定でユーザー情報を取得する' do
+        get api_v1_user_path(user.id), headers: headers
+        expect(response_json[:name]).to be_present
+        expect(response_json[:password_digest]).not_to be_present
+      end
     end
   end
 
   describe 'DELETE /api/v1/users/:id' do
-    # 管理者ユーザーが他のユーザーを削除できる
-    it '管理者は他のユーザーを削除できる' do
-      login_user(admin.email, "secret123")
-      json = response_json
-      token = json[:user][:token]
-      delete "/api/v1/users/#{user.id}",
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
-      expect(response).to have_http_status(:ok)
-      # 削除されたユーザーが存在しないことを確認
-      login_user(user.email, 'secret123')
-      expect(response).to have_http_status(:unauthorized)
+    context 'as admin' do
+      it '他のユーザーを削除できる' do
+        delete api_v1_user_path(user.id), headers: auth_headers(token_for_admin)
+        expect(response).to have_http_status(:ok)
+
+        # 削除されたユーザーでログインできないこと
+        login_user(user.email, 'secret123')
+        expect(response).to have_http_status(:unauthorized)
+      end
+
+      it '存在しないユーザーIDでは404' do
+        delete api_v1_user_path(999999), headers: auth_headers(token_for_admin)
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it '自分自身は削除できない' do
+        delete api_v1_user_path(admin.id), headers: auth_headers(token_for_admin)
+        expect(response).to have_http_status(:forbidden)
+        # まだログイン可能
+        login_user(admin.email, 'secret123')
+        expect(response).to have_http_status(:ok)
+      end
     end
 
-    it '一般ユーザーは他のユーザーを削除できない' do
-      # non_admin でログイン → token取得
-      login_user(non_admin.email, "secret123")
-      json = response_json
-      token = json[:user][:token]
-      delete "/api/v1/users/#{user.id}",
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
-      expect(response).to have_http_status(:forbidden)
+    context 'as non-admin' do
+      it '他人を削除できず403' do
+        delete api_v1_user_path(user.id), headers: auth_headers(token_for_non_admin)
+        expect(response).to have_http_status(:forbidden)
+      end
     end
 
-    it '非ログインユーザーはユーザーを削除できない' do
-      token = "invalid"
-      delete "/api/v1/users/#{user.id}",
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
-      expect(response).to have_http_status(:unauthorized)
-    end
-
-    it '存在しないユーザーIDでは404を返す' do
-      login_user(admin.email, "secret123")
-      json = response_json
-      token = json[:user][:token]
-      delete "/api/v1/users/999999",
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}"}
-      expect(response).to have_http_status(:not_found)
-    end
-
-    it '管理者でも自分自身は削除できない' do
-      login_user(admin.email, "secret123")
-      json = response_json
-      token = json[:user][:token]
-      delete "/api/v1/users/#{admin.id}",
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}" }
-      expect(response).to have_http_status(:forbidden)
-      # ユーザーが削除されていないことを確認（再度ログインできる）
-      login_user(admin.email, 'secret123')
-      expect(response).to have_http_status(:ok)
+    context 'when unauthenticated' do
+      it '401 を返す' do
+        delete api_v1_user_path(user.id), headers: auth_headers('invalid')
+        expect(response).to have_http_status(:unauthorized)
+      end
     end
   end
 
-  describe 'PATCH /api/v1/users' do
-    it 'ログインユーザーが自分の情報を更新できる' do
-      login_user(user.email, "secret123")
-      login_json = response_json
-      token = login_json[:user][:token]
-      patch "/api/v1/users/#{user.id}",
-          params: { user: { name:  "新しい名前" } }.to_json,
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}" }
+  describe 'PATCH /api/v1/users/:id' do
+    context 'as self' do
+      it '自分の情報を更新できる' do
+        patch api_v1_user_path(user.id),
+              params: { user: { name:  "新しい名前" } }.to_json,
+              headers: auth_headers(token_for_user)
 
-      expect(response).to have_http_status(:ok)
-      user_json = response_json
-      expect(user_json.dig(:user, :name)).to eq("新しい名前")
+        expect(response).to have_http_status(:ok)
+        expect(response_json.dig(:user, :name)).to eq("新しい名前")
+      end
     end
-    it '非ログインユーザーは情報を更新できない' do
-      token = "invalid"
-      patch "/api/v1/users/#{user.id}",
-          params: { user: { name:  "新しい名前" } }.to_json,
-          headers: { 'CONTENT_TYPE' => 'application/json', 'Authorization' => "Bearer #{token}" }
-      expect(response).to have_http_status(:unauthorized)
-      #　名前が変更されていないことを確認
-      get "/api/v1/users/#{user.id}",
-          headers: { 'CONTENT_TYPE' => 'application/json'}
-      user_json = response_json
-      expect(user_json[:name]).not_to eq("新しい名前")
+
+    context 'as non-admin' do
+      it '他人の情報は更新できず403' do
+        other = create(:user, password: 'secret123', password_confirmation: 'secret123')
+        patch api_v1_user_path(other.id),
+              params: { user: { name:  "勝手に変更" } }.to_json,
+              headers: auth_headers(token_for_non_admin)
+        expect(response).to have_http_status(:forbidden)
+      end
+    end
+
+    context 'as admin' do
+      it '他人の情報を更新できる' do
+        target = create(:user, password: 'secret123', password_confirmation: 'secret123', admin: false)
+        patch api_v1_user_path(target.id),
+              params: { user: { name:  "管理者が更新", admin: true } }.to_json,
+              headers: auth_headers(token_for_admin)
+        expect(response).to have_http_status(:ok)
+        expect(response_json.dig(:user, :name)).to eq("管理者が更新")
+        expect(target.reload.admin).to be true
+      end
+    end
+
+    context 'when unauthenticated' do
+      it '401 を返し、変更されない' do
+        patch api_v1_user_path(user.id),
+              params: { user: { name:  "新しい名前" } }.to_json,
+              headers: auth_headers('invalid')
+        expect(response).to have_http_status(:unauthorized)
+        get api_v1_user_path(user.id), headers: headers
+        expect(response_json[:name]).not_to eq("新しい名前")
+      end
     end
   end
 end
