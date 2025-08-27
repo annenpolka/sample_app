@@ -1,5 +1,8 @@
 class Api::V1::UsersController < Api::BaseController
   before_action :authenticate_user, only: [:index, :update, :destroy]
+  # /api/v1/me 経由のアクセスでは認証とID解決を行う
+  before_action :authenticate_me!, only: [:show, :update]
+  before_action :assign_me_id,     only: [:show, :update]
   def index
     @users = User.paginate(page: params[:page], per_page: 30)
                  .select(:id, :name)
@@ -28,8 +31,16 @@ class Api::V1::UsersController < Api::BaseController
   end
 
   def update
-    if @current_user.update(user_params)
-      render json: {user: { name: @current_user.name, email: @current_user.email } }, status: :ok
+    @user = User.find(params[:id])
+
+    # 管理者は任意のユーザーを更新可能。一般ユーザーは自分自身のみ許可。
+    permitted = user_params
+    unless @current_user.admin? || @user.id == @current_user.id
+      return render json: { error: 'Forbidden' }, status: :forbidden
+    end
+
+    if @user.update(permitted)
+      render json: { user: { name: @user.name, email: @user.email } }, status: :ok
     else
       render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
     end
@@ -49,6 +60,23 @@ class Api::V1::UsersController < Api::BaseController
 
     def user_params
       params.require(:user).permit(:name, :email, :password)
+    end
+
+    # /api/v1/me のときだけ認証を強制
+    def authenticate_me!
+      return unless me_endpoint?
+      authenticate_user
+    end
+
+    # /api/v1/me のときは現在のユーザーIDを使用
+    def assign_me_id
+      return unless me_endpoint?
+      return unless @current_user
+      params[:id] = @current_user.id
+    end
+
+    def me_endpoint?
+      request.path == '/api/v1/me'
     end
 
 end
