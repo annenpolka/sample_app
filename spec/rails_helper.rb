@@ -38,6 +38,8 @@ RSpec.configure do |config|
 
   # ヘルパーメソッド
   config.include LoginHelpers, type: :request
+  # API系のリクエストスペックにのみAPI版のログインヘルパを混ぜる
+  config.include ApiAuthHelpers, type: :request, file_path: %r{spec/requests/api/}
 
   # If you're not using ActiveRecord, or you'd prefer not to run each of your
   # examples within a transaction, remove the following line or assign false
