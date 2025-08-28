@@ -1,8 +1,8 @@
 class Api::V1::UsersController < Api::BaseController
   before_action :authenticate_user, only: [:index, :update, :destroy]
   # /api/v1/me 経由のアクセスでは認証とID解決を行う
-  before_action :authenticate_me!, only: [:show, :update]
-  before_action :assign_me_id,     only: [:show, :update]
+  before_action :authenticate_me!, only: [:show, :update, :following, :followers]
+  before_action :assign_me_id,     only: [:show, :update, :following, :followers]
   def index
     @users = User.paginate(page: params[:page], per_page: 30)
                  .select(:id, :name)
@@ -56,6 +56,32 @@ class Api::V1::UsersController < Api::BaseController
     end
   end
 
+  def following
+    @user = User.find(params[:id])
+    @following = @user.following.select(:id, :name).paginate(page: params[:page])
+    render json: {
+      following: @following,
+      meta: {
+        current_page: @following.current_page,
+        total_pages: @following.total_pages,
+        total_count: @following.total_entries
+      }
+    }, status: :ok
+  end
+
+  def followers
+    @user = User.find(params[:id])
+    @followers = @user.followers.select(:id, :name).paginate(page: params[:page])
+    render json: {
+      followers: @followers,
+      meta: {
+        current_page: @followers.current_page,
+        total_pages: @followers.total_pages,
+        total_count: @followers.total_entries
+      }
+    }, status: :ok
+  end
+
     private
 
     def user_params
@@ -76,7 +102,8 @@ class Api::V1::UsersController < Api::BaseController
     end
 
     def me_endpoint?
-      request.path == '/api/v1/me'
+      # /api/v1/me およびそのサブパス（/following, /followers）を対象にする
+      request.path.start_with?('/api/v1/me')
     end
 
 end

@@ -23,8 +23,16 @@ Rails.application.routes.draw do
 
   namespace :api, defaults: { format: :json } do
     namespace :v1 do
-      resources :users
-      resource :me, only: [:show, :update], controller: 'users'
+      resources :users do
+        member do
+          get :followers, :following
+        end
+      end
+      resource :me, only: [:show, :update], controller: 'users' do
+        # /api/v1/me/following, /api/v1/me/followers
+        get :following, to: 'users#following'
+        get :followers, to: 'users#followers'
+      end
       post 'auth/login', to: 'auth#login'
     end
   end
