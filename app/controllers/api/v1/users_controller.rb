@@ -84,8 +84,8 @@ class Api::V1::UsersController < Api::BaseController
 
   def follow
     @user = User.find(params[:id])
-    if @current_user.follow(@user)
-      render json: { following: @user }, status: :ok
+    if @current_user.following?(@user) || @current_user.follow(@user)
+      render json: { following: @user.slice(:id, :name) }, status: :ok
     else
       render json: { error: 'Unable to follow user' }, status: :unprocessable_entity
     end
@@ -94,7 +94,7 @@ class Api::V1::UsersController < Api::BaseController
   def unfollow
     @user = User.find(params[:id])
     if @current_user.unfollow(@user)
-      render json: { unfollowed: @user }, status: :ok
+      render json: { unfollowed: @user.slice(:id, :name) }, status: :ok
     else
       render json: { error: 'Unable to unfollow user' }, status: :unprocessable_entity
     end

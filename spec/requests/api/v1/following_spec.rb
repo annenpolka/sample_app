@@ -90,6 +90,13 @@ RSpec.describe "Api::V1::Following", type: :request do
         expect(JSON.parse(response.body)["following"]).to be_truthy
       end
 
+      it "すでにフォローしているユーザーへのフォローは成功する" do
+        create(:relationship, follower_id: user.id, followed_id: other_user.id)
+        post path, headers: auth_headers(token)
+        expect(response).to have_http_status(200)
+        expect(JSON.parse(response.body)["following"]).to be_truthy
+      end
+
       it "存在しないユーザーへのフォローは404を返す" do
         post follow_api_v1_user_path(id: 999999999), headers: auth_headers(token)
         expect(response).to have_http_status(404)
