@@ -75,4 +75,60 @@ RSpec.describe "Api::V1::Following", type: :request do
       end
     end
   end
+
+  describe "POST /api/v1/users/:id/follow" do
+    let!(:user) { create(:user) }
+    let!(:other_user) { create(:user) }
+    let(:path) { follow_api_v1_user_path(id: other_user.id) }
+
+    context "認証済みユーザーが他のユーザーをフォローする場合" do
+      let!(:token) { api_token_for(user, password: user.password) }
+
+      it "存在するユーザーへのフォローが成功する" do
+        post path, headers: auth_headers(token)
+        expect(response).to have_http_status(200)
+        expect(JSON.parse(response.body)["following"]).to be_truthy
+      end
+
+      it "存在しないユーザーへのフォローは404を返す" do
+        post follow_api_v1_user_path(id: 999999999), headers: auth_headers(token)
+        expect(response).to have_http_status(404)
+      end
+    end
+
+    context "認証されていない場合" do
+      it "401を返す" do
+        post path
+        expect(response).to have_http_status(401)
+      end
+    end
+  end
+
+  describe "DELETE /api/v1/users/:id/follow" do
+    let!(:user) { create(:user) }
+    let!(:other_user) { create(:user) }
+    let!(:relationship) { create(:relationship, follower_id: user.id, followed_id: other_user.id) }
+    let(:path) { follow_api_v1_user_path(id: other_user.id) }
+    context "認証済みユーザーが他のユーザーのフォローを解除する場合" do
+      let!(:token) { api_token_for(user, password: user.password) }
+
+      it "存在するユーザーのフォロー解除が成功する" do
+        delete path, headers: auth_headers(token)
+        expect(response).to have_http_status(200)
+        expect(JSON.parse(response.body)["unfollowed"]).to be_truthy
+      end
+      it "存在しないユーザーIDの場合は404を返す" do
+        delete follow_api_v1_user_path(id: 999999999), headers: auth_headers(token)
+        expect(response).to have_http_status(404)
+      end
+    end
+
+    context "認証されていない場合" do
+      it "401を返す" do
+        delete path
+        expect(response).to have_http_status(401)
+      end
+    end
+
+  end
 end

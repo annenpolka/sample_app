@@ -26,6 +26,8 @@ Rails.application.routes.draw do
       resources :users do
         member do
           get :followers, :following
+          post :follow, to: 'users#follow'
+          delete :follow, to: 'users#unfollow'
         end
       end
       resource :me, only: [:show, :update], controller: 'users' do

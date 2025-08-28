@@ -1,5 +1,5 @@
 class Api::V1::UsersController < Api::BaseController
-  before_action :authenticate_user, only: [:index, :update, :destroy]
+  before_action :authenticate_user, only: [:index, :update, :destroy, :follow, :unfollow]
   # /api/v1/me 経由のアクセスでは認証とID解決を行う
   before_action :authenticate_me!, only: [:show, :update, :following, :followers]
   before_action :assign_me_id,     only: [:show, :update, :following, :followers]
@@ -80,6 +80,24 @@ class Api::V1::UsersController < Api::BaseController
         total_count: @followers.total_entries
       }
     }, status: :ok
+  end
+
+  def follow
+    @user = User.find(params[:id])
+    if @current_user.follow(@user)
+      render json: { following: @user }, status: :ok
+    else
+      render json: { error: 'Unable to follow user' }, status: :unprocessable_entity
+    end
+  end
+
+  def unfollow
+    @user = User.find(params[:id])
+    if @current_user.unfollow(@user)
+      render json: { unfollowed: @user }, status: :ok
+    else
+      render json: { error: 'Unable to unfollow user' }, status: :unprocessable_entity
+    end
   end
 
     private
